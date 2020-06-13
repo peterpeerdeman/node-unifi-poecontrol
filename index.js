@@ -7,7 +7,6 @@ const agent = new https.Agent({
     rejectUnauthorized: false
 });
 
-
 class Unifi {
     constructor(controller_url) {
         this._cookie;
@@ -71,6 +70,60 @@ class Unifi {
 
     writePortOverrides(device_id, port_overrides) {
         return this.apiCall(`/api/s/default/rest/device/${device_id}`, 'put', port_overrides);
+    }
+
+    setPoePorts(device_id, poePorts) {
+        return this.getDevices().then(response => {
+            const device = response.data.find(element => {
+                return element.device_id == device_id;
+            });
+            if (!device) {
+                throw new Error('device not found');
+            }
+            const current_port_table = device.port_table;
+            const poe_ports_table = current_port_table.filter(port => {
+                return port.port_poe == true;
+            });
+            if (poePorts.length > poe_ports_table.length) {
+                throw new Error('too many poe ports specified');
+            }
+
+            const current_port_overrides = device.port_overrides;
+
+            // generate port overrides
+            const port_overrides = poe_ports_table.map((port, index) => {
+                let portFallback = undefined;
+                if (typeof poePorts[index] === 'undefined') {
+                    const portOverride = current_port_overrides.find(element => {
+                        return element.port_idx == port.port_idx;
+                    });
+                    if(portOverride) {
+                        return portOverride;
+                    } else {
+                        return undefined;
+                    }
+                }
+                return {
+                    poe_mode: poePorts[index] ? 'auto' : 'off',
+                    port_idx: port.port_idx,
+                    port_security_mac_address: [],
+                    portconf_id: port.portconf_id
+                };
+            });
+
+            const filteredOverrides = port_overrides.filter(element => {
+                return (typeof element !== 'undefined');
+            });
+
+            return this.writePortOverrides(device_id, {port_overrides:filteredOverrides}).then(response => {
+                if(response.meta.rc == 'ok') {
+                    return filteredOverrides;
+                } else {
+                    throw new Error('something went wrong while sending overrides');
+                }
+            });
+
+        });
     }
 }
 
