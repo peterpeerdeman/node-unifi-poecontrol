@@ -10,6 +10,10 @@ const response_device_all = require('./response.device_all.json');
 const response_device_mac = require('./response.device_mac.json');
 const response_device_put = require('./response.device_put.json');
 
+const response_device_no_overrides = require('./response.device_no_overrides.json');
+const response_device_only_third_port_disabled = require('./response.device_only_third_port_disabled.json');
+const response_device_only_fourth_port_disabled = require('./response.device_only_fourth_port_disabled.json');
+
 describe('login related tests', () => {
     it('Should be able to login', (done) => {
         nock('http://unificontroller:8443')
@@ -39,9 +43,8 @@ describe('login related tests', () => {
     });
 });
 
-describe('api feature tests', () => {
+describe('low level feature tests', () => {
     var unifi;
-    var real;
 
     beforeEach(ready => {
         nock('http://unificontroller:8443')
@@ -149,6 +152,114 @@ describe('api feature tests', () => {
         })
         .catch(err => {
             done(err);
+        });
+    });
+
+});
+
+describe('high level feature tests', () => {
+    var unifi;
+
+    beforeEach(ready => {
+        nock('http://unificontroller:8443')
+            .post('/api/login')
+            .reply(200, response_login, {
+                'Set-Cookie': [
+                    'unifises=WTLO4ls6iAEJZLyAFXVwhWDvn0IeDKkC; Path=/; Secure; HttpOnly',
+                    'csrf_token=0WHWBOjF6OQ9OpU9iMV9z8LiQj7ME4oD; Path=/; Secure'
+                ]
+            });
+
+        unifi = new Unifi('http://unificontroller:8443');
+        unifi.login('secretusername', 'secretpassword')
+        .then(response => {
+            ready();
+        });
+    });
+
+    it('Should setPoePorts with no existing overrides', (done) => {
+        nock('http://unificontroller:8443')
+            .get('/api/s/default/stat/device')
+            .reply(200, response_device_no_overrides);
+        nock('http://unificontroller:8443')
+            .put('/api/s/default/rest/device/5ee13048da6ad50006e3177b')
+            .reply(200, response_device_put);
+
+        unifi.setPoePorts('5ee13048da6ad50006e3177b', [true, true, false]).then(response => {
+            expect(response.length).to.equal(3);
+            expect(response[0].poe_mode).to.equal('auto');
+            expect(response[1].poe_mode).to.equal('auto');
+            expect(response[2].poe_mode).to.equal('off');
+            done();
+        })
+        .catch(err => {
+            console.log(err);
+            done();
+        });
+    });
+
+    it('Should setPoePorts with existing overrides (fourth port disabled)', (done) => {
+        nock('http://unificontroller:8443')
+            .get('/api/s/default/stat/device')
+            .reply(200, response_device_only_fourth_port_disabled);
+        nock('http://unificontroller:8443')
+            .put('/api/s/default/rest/device/5ee13048da6ad50006e3177b')
+            .reply(200, response_device_put);
+
+        unifi.setPoePorts('5ee13048da6ad50006e3177b', [true, true, false]).then(response => {
+            expect(response.length).to.equal(4);
+            expect(response[0].poe_mode).to.equal('auto');
+            expect(response[1].poe_mode).to.equal('auto');
+            expect(response[2].poe_mode).to.equal('off');
+            expect(response[3].poe_mode).to.equal('off');
+            done();
+        })
+        .catch(err => {
+            console.log(err);
+            done();
+        });
+    });
+
+    it('Should setPoePorts with existing overrides (third port off)', (done) => {
+        nock('http://unificontroller:8443')
+            .get('/api/s/default/stat/device')
+            .reply(200, response_device_only_third_port_disabled);
+        nock('http://unificontroller:8443')
+            .put('/api/s/default/rest/device/5ee13048da6ad50006e3177b')
+            .reply(200, response_device_put);
+
+        unifi.setPoePorts('5ee13048da6ad50006e3177b', [true, true]).then(response => {
+            expect(response.length).to.equal(3);
+            expect(response[0].poe_mode).to.equal('auto');
+            expect(response[1].poe_mode).to.equal('auto');
+            expect(response[2].poe_mode).to.equal('off');
+            done();
+        })
+        .catch(err => {
+            console.log(err);
+            done();
+        });
+    });
+
+    it('setPoePorts should override existing config', (done) => {
+        nock('http://unificontroller:8443')
+            .get('/api/s/default/stat/device')
+            .reply(200, response_device_only_third_port_disabled);
+        nock('http://unificontroller:8443')
+            .put('/api/s/default/rest/device/5ee13048da6ad50006e3177b')
+            .reply(200, response_device_put);
+
+        unifi.setPoePorts('5ee13048da6ad50006e3177b', [true, true, true, true]).then(response => {
+            expect(response.length).to.equal(4);
+            expect(response[0].poe_mode).to.equal('auto');
+            expect(response[1].poe_mode).to.equal('auto');
+            expect(response[2].poe_mode).to.equal('auto');
+            expect(response[3].poe_mode).to.equal('auto');
+            done();
+        })
+        .catch(err => {
+            console.log(err);
+            done();
         });
     });
 
