@@ -93,7 +93,7 @@ class Unifi {
             // generate port overrides
             const port_overrides = poe_ports_table.map((port, index) => {
                 let portFallback = undefined;
-                if (typeof poePorts[index] === 'undefined') {
+                if (typeof poePorts[index] === 'undefined' && current_port_overrides) {
                     const portOverride = current_port_overrides.find(element => {
                         return element.port_idx == port.port_idx;
                     });
