@@ -1,6 +1,6 @@
 {
   "name": "node-unifi-poecontrol",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A unifi controller wrapper to control poe ports on switches",
   "main": "index.js",
   "dependencies": {
