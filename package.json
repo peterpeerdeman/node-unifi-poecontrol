@@ -4,14 +4,14 @@
   "description": "A unifi controller wrapper to control poe ports on switches",
   "main": "index.js",
   "dependencies": {
-    "axios": "^0.21.1"
+    "axios": "^0.21.4"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "coveralls": "^3.0.2",
-    "mocha": "^8.4.0",
-    "nock": "^9.4.3",
-    "nyc": "^15.0.0"
+    "chai": "^4.3.6",
+    "coveralls": "^3.1.1",
+    "mocha": "^10.0.0",
+    "nock": "^9.6.1",
+    "nyc": "^15.1.0"
   },
   "scripts": {
     "test": "./node_modules/.bin/nyc mocha",
